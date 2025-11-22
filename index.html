@@ -2,48 +2,77 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>爱心粒子特效 - 邓琳钰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>致 邓琳钰</title>
     <style>
-        /* 页面基本样式设置 */
+        /* --- 页面基础样式 --- */
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden; /* 隐藏滚动条 */
-            background-color: #000; /* 纯黑背景 */
+            overflow: hidden;
+            background-color: #050002; /* 深邃的黑红背景，比纯黑更有质感 */
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        /* Canvas 样式，铺满全屏 */
+        /* --- Canvas 画布 --- */
         #canvas {
             position: absolute;
             top: 0;
             left: 0;
-            z-index: 1; /* 放在底层 */
+            z-index: 1;
+            filter: contrast(1.2) brightness(1.1); /* 增强对比度 */
         }
 
-        /* 中间文字的样式 */
-        .center-text {
+        /* --- 中间文字的高级排版 --- */
+        .center-box {
             position: relative;
-            z-index: 10; /* 确保文字在粒子上方 */
-            color: #ff6b81; /* 配合爱心的粉红色调 */
-            font-family: "Microsoft YaHei", "SimHei", sans-serif; /* 优先使用微软雅黑 */
-            font-size: 4rem; /* 文字大小 */
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(255, 107, 129, 0.8), 0 0 20px rgba(255, 107, 129, 0.5); /* 发光效果 */
-            letter-spacing: 5px;
-            pointer-events: none; /* 让鼠标事件穿透文字，不影响交互（如果有的话） */
-            animation: textPulse 1.5s ease-in-out infinite; /* 文字也跟随轻微跳动 */
+            z-index: 10;
+            text-align: center;
+            mix-blend-mode: screen; /* 混合模式，让文字和背后的粒子融合 */
         }
 
-        /* 文字的轻微跳动动画 */
-        @keyframes textPulse {
-            0%, 100% { transform: scale(1); opacity: 0.9; }
-            50% { transform: scale(1.05); opacity: 1; }
+        .name {
+            font-family: "Noto Serif SC", "SimSun", "Songti SC", serif; /* 使用宋体/衬线体，更有书卷气 */
+            font-size: 4.5rem;
+            font-weight: 700;
+            /* 制作流光渐变文字 */
+            background: linear-gradient(135deg, #ffe6e6 0%, #ff9a9e 50%, #ff6b81 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 10px; /* 增加字间距，显得大气 */
+            text-shadow: 0 0 30px rgba(255, 107, 129, 0.6);
+            animation: textBreath 3s ease-in-out infinite;
+        }
+
+        .subtitle {
+            margin-top: 15px;
+            font-family: "Arial", sans-serif;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: fadeIn 2s ease-out 1s forwards;
+        }
+
+        /* --- 动画定义 --- */
+        @keyframes textBreath {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255, 107, 129, 0.3)); }
+            50% { transform: scale(1.03); filter: drop-shadow(0 0 25px rgba(255, 107, 129, 0.6)); }
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .name { font-size: 2.8rem; letter-spacing: 5px; }
         }
     </style>
 </head>
@@ -51,7 +80,10 @@
 
     <canvas id="canvas"></canvas>
     
-    <div class="center-text">邓琳钰</div>
+    <div class="center-box">
+        <div class="name">邓琳钰</div>
+        <div class="subtitle">MY UNIVERSE</div> 
+    </div>
 
     <script>
         const canvas = document.getElementById('canvas');
@@ -59,10 +91,12 @@
 
         let width, height;
         let particles = [];
-        // 粒子数量，可以根据性能调整
-        const particleCount = 800; 
+        // 增加粒子数量以获得细腻感，但要平衡性能
+        const particleCount = 1200; 
 
-        // 初始化画布大小
+        // 颜色库：从浅粉到深红的渐变色系
+        const colors = ['#ff9a9e', '#fecfef', '#ff6b81', '#fcb69f', '#ffdde1'];
+
         function resize() {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
@@ -70,114 +104,110 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // --- 心形数学公式 ---
-        // 使用参数方程计算心形上的点
-        // t 的范围是 0 到 2*PI
-        function getHeartPoint(t) {
-            // 标准心形方程
+        // --- 改进的心形函数 ---
+        // 引入 scale 参数，方便动态调整大小
+        function getHeartPoint(t, scale = 15) {
             const x = 16 * Math.pow(Math.sin(t), 3);
             const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-            
-            // 返回坐标，并进行缩放(scale)和Y轴反转(因为canvas Y轴向下为正)
-            // 这里的 15 是基础缩放倍数，决定心形的大小
-            return {
-                x: x * 15,
-                y: -y * 15
-            };
+            return { x: x * scale, y: -y * scale };
         }
 
-        // --- 粒子类 ---
         class Particle {
             constructor() {
-                this.reset();
-                // 给每个粒子一个随机的初始位置，避免一开始过于聚集
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
+                this.reset(true);
             }
 
-            reset() {
-                // 随机选择心形线上的一个角度
+            reset(isInit = false) {
+                // 随机角度
                 const t = Math.random() * 2 * Math.PI;
-                const heartPoint = getHeartPoint(t);
                 
-                // 目标位置：屏幕中心 + 心形坐标
-                this.targetX = width / 2 + heartPoint.x;
-                this.targetY = height / 2 + heartPoint.y;
-                
-                // 粒子的基础大小
-                this.baseSize = Math.random() * 2 + 1;
-                this.size = this.baseSize;
-                
-                // 粒子的移动速度系数
-                this.speed = Math.random() * 0.05 + 0.02;
+                // 基础位置
+                const heart = getHeartPoint(t);
+                const centerX = width / 2;
+                const centerY = height / 2;
 
-                // 颜色：在红色和粉色之间随机
-                const colors = ['#ff4757', '#ff6b81', '#ff7f50', '#fd79a8'];
+                // 目标位置
+                this.targetX = centerX + heart.x;
+                this.targetY = centerY + heart.y;
+
+                // 初始位置：如果是初始化，就在随机位置；如果是重置，就在中心附近喷射出来
+                if (isInit) {
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height;
+                } else {
+                    this.x = centerX;
+                    this.y = centerY;
+                }
+
+                // 粒子属性
+                this.size = Math.random() * 2.5; // 大小不一
+                this.speed = Math.random() * 0.06 + 0.02;
                 this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.friction = Math.random() * 0.9 + 0.1; // 摩擦力系数，制造层次
                 
-                // 随机初始透明度
-                this.alpha = Math.random() * 0.5 + 0.5;
+                // 偏移量：让粒子不要死死粘在线上，而是形成光晕带
+                this.offsetX = (Math.random() - 0.5) * 20; 
+                this.offsetY = (Math.random() - 0.5) * 20; 
             }
 
-            update(beatScale) {
-                // 应用心跳缩放：根据当前的跳动比例调整目标位置
-                // 我们需要计算目标点相对于中心的向量，然后乘以缩放比例
-                const relTargetX = (this.targetX - width / 2) * beatScale;
-                const relTargetY = (this.targetY - height / 2) * beatScale;
+            update(beatScale, time) {
+                // 目标位置加上心跳缩放
+                const centerX = width / 2;
+                const centerY = height / 2;
                 
-                // 最终的动态目标位置
-                const finalTargetX = width / 2 + relTargetX;
-                const finalTargetY = height / 2 + relTargetY;
+                // 计算当前的理想位置
+                // 我们保留原始的 targetX/Y 比例，应用 beatScale
+                let targetX = centerX + (this.targetX - centerX) * beatScale + this.offsetX;
+                let targetY = centerY + (this.targetY - centerY) * beatScale + this.offsetY;
 
-                // 简单的缓动动画：让粒子向目标位置移动
-                this.x += (finalTargetX - this.x) * this.speed;
-                this.y += (finalTargetY - this.y) * this.speed;
+                // 增加一点基于时间的浮动，像呼吸一样
+                targetX += Math.sin(time * 2 + this.size) * 5;
+                targetY += Math.cos(time * 2 + this.size) * 5;
 
-                // 根据跳动稍微调整大小和透明度，增加动态感
-                this.size = this.baseSize * beatScale;
-                this.alpha = 0.6 + Math.sin(Date.now() / 500) * 0.4; // 简单的闪烁
+                // 缓动移动
+                this.x += (targetX - this.x) * this.speed;
+                this.y += (targetY - this.y) * this.speed;
+
+                // 绘制
+                this.draw();
             }
 
             draw() {
                 ctx.beginPath();
+                // 绘制发光效果：画圆
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
-                ctx.globalAlpha = this.alpha;
                 ctx.fill();
-                ctx.globalAlpha = 1; // 重置全局透明度
             }
         }
 
-        // 初始化粒子数组
         function initParticles() {
+            particles = [];
             for (let i = 0; i < particleCount; i++) {
                 particles.push(new Particle());
             }
         }
 
-        // --- 动画循环 ---
         function animate() {
-            // 每一帧都清空画布，使用半透明黑色以实现轻微的拖尾效果（可选，这里用纯黑清除）
-            ctx.clearRect(0, 0, width, height);
-            // 如果想要拖尾效果，注释掉上一行，解注下一行：
-            // ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; ctx.fillRect(0, 0, width, height);
+            // --- 关键点：拖尾效果 ---
+            // 不完全清空画布，而是覆盖一层半透明的黑色
+            // 这种 "fillStyle + fillRect" 的方式能制造出流体拖尾感
+            ctx.fillStyle = 'rgba(5, 0, 2, 0.15)'; 
+            ctx.fillRect(0, 0, width, height);
 
-            // 计算心跳缩放比例
-            // 使用正弦函数模拟心跳节奏
-            const time = Date.now() / 1000; // 当前时间（秒）
-            // 1.5s 一个周期，基础大小 1，跳动幅度 0.15
-            const beatScale = 1 + Math.sin(time * Math.PI * 2 / 1.5) * 0.15;
+            const time = Date.now() / 1000;
+            
+            // 模拟更真实的心跳节奏：咚-咚----咚-咚
+            // 使用 pow(sin) 来让波形更尖锐，模拟肌肉收缩
+            let beat = Math.sin(time * 3); 
+            // 让心跳有顿挫感（正值部分稍微尖锐一点）
+            let beatScale = 1 + Math.pow(Math.abs(beat), 4) * 0.12;
 
-            // 更新并绘制所有粒子
-            particles.forEach(p => {
-                p.update(beatScale);
-                p.draw();
-            });
+            particles.forEach(p => p.update(beatScale, time));
 
             requestAnimationFrame(animate);
         }
 
-        // 启动
         initParticles();
         animate();
 
