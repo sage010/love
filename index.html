@@ -5,19 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>致 邓琳钰</title>
     <style>
-        /* --- 页面基础样式：解决浏览器打开无法显示问题 (问题 2) --- */
+        /* --- 页面基础样式 --- */
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #050002;
+            background-color: #050002; /* 深邃黑红背景 */
             display: flex;
             justify-content: center;
             align-items: center;
             font-family: "Noto Serif SC", "SimSun", serif;
-            touch-action: manipulation; /* 优化移动端触摸响应 */
         }
 
         #canvas {
@@ -28,17 +27,18 @@
             filter: contrast(1.2) brightness(1.1);
         }
 
-        /* --- 中间文字 --- */
+        /* --- 中间文字 (邓琳钰) 的高级感排版 --- */
         .center-box {
             position: relative;
             z-index: 10;
             text-align: center;
-            mix-blend-mode: screen;
+            mix-blend-mode: screen; /* 混合模式让文字更融合 */
         }
 
         .name {
             font-size: 4.5rem;
             font-weight: 700;
+            /* 流光渐变文字 */
             background: linear-gradient(135deg, #ffe6e6 0%, #ff9a9e 50%, #ff6b81 100%);
             -webkit-background-clip: text;
             background-clip: text;
@@ -57,7 +57,7 @@
             text-transform: uppercase;
         }
 
-        /* --- 提示点击 (问题 4) --- */
+        /* --- 提示点击 --- */
         .click-hint {
             position: absolute;
             bottom: 50px;
@@ -66,7 +66,7 @@
             z-index: 20;
             letter-spacing: 2px;
             animation: hintPulse 2s infinite;
-            pointer-events: none; /* 确保点击能穿透文字，被 body 捕获 */
+            pointer-events: none;
         }
 
         @keyframes textBreath {
@@ -93,76 +93,59 @@
         <div class="subtitle">MY UNIVERSE</div> 
     </div>
 
-    <div class="click-hint" id="hint">点击或触屏 · 开启惊喜</div>
+    <div class="click-hint" id="hint">点击屏幕 · 开启音乐</div>
 
     <audio id="bgm" loop>
         <source src="dly.mp3" type="audio/mpeg">
     </audio>
 
     <script>
-        // --- 1. 音乐控制逻辑 (iOS/微信/点击触发修复 - 问题 1 & 4) ---
+        // --- 1. 音乐控制逻辑 (包含手机和微信兼容修复) ---
         const audio = document.getElementById('bgm');
         const hint = document.getElementById('hint');
         let isPlayed = false; 
 
-        function tryPlayMusic() {
+        function playMusic() {
             if (isPlayed) return;
 
-            // 尝试播放，并捕获 Promise 错误，这是 iOS 关键修复
-            const playPromise = audio.play();
-
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    // 播放成功
-                    hint.style.display = 'none';
-                    isPlayed = true;
-                }).catch(error => {
-                    // 播放被拦截，等待下一次交互
-                    console.log("播放被拦截，等待下次用户交互。");
-                });
-            }
+            // 尝试播放，并处理浏览器可能抛出的拦截错误
+            audio.play().then(() => {
+                // 播放成功
+                hint.style.display = 'none'; // 隐藏提示
+                isPlayed = true;
+            }).catch(e => {
+                console.log("播放被拦截，等待下一次交互或 WeixinJSBridge 触发");
+            });
         }
-        
-        // 绑定事件：同时使用 touchstart 和 click (问题 4)
-        // 使用 {once: true} 确保只触发一次
-        document.body.addEventListener('touchstart', tryPlayMusic, {once: true});
-        document.body.addEventListener('click', tryPlayMusic, {once: true});
 
-        // 微信专用修复代码
+        // 监听多种用户交互事件，确保手机端能触发
+        document.body.addEventListener('touchstart', playMusic);
+        document.body.addEventListener('click', playMusic);
+
+        // 微信专用修复代码，监听微信浏览器事件
         document.addEventListener("WeixinJSBridgeReady", function () {
-            tryPlayMusic();
+            playMusic();
         }, false);
 
 
         // --- 2. 爱心粒子特效逻辑 ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let width, height;
-        // 声明动态缩放比例
-        let heartScale = 15; 
-        
-        let particles = [];
+        let width, height, particles = [];
         const particleCount = 1200; 
         const colors = ['#ff9a9e', '#fecfef', '#ff6b81', '#fcb69f', '#ffdde1'];
 
-        // 核心：动态调整画布和缩放比例 (问题 3)
         function resize() {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
-            
-            // 确保爱心在任何屏幕上都完整显示，取屏幕最小尺寸的 8% 作为缩放基准
-            const baseSize = 0.08; 
-            heartScale = Math.min(width, height) * baseSize;
         }
         window.addEventListener('resize', resize);
         resize();
 
-        // 使用动态缩放比例
-        function getHeartPoint(t) {
+        function getHeartPoint(t, scale = 15) {
             const x = 16 * Math.pow(Math.sin(t), 3);
             const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-            // 这里使用全局的 heartScale
-            return { x: x * heartScale, y: -y * heartScale };
+            return { x: x * scale, y: -y * scale };
         }
 
         class Particle {
