@@ -27,17 +27,18 @@
             filter: contrast(1.2) brightness(1.1);
         }
 
-        /* --- 中间文字 --- */
+        /* --- 中间文字 (邓琳钰) 的高级感排版 --- */
         .center-box {
             position: relative;
             z-index: 10;
             text-align: center;
-            mix-blend-mode: screen;
+            mix-blend-mode: screen; /* 混合模式让文字更融合 */
         }
 
         .name {
             font-size: 4.5rem;
             font-weight: 700;
+            /* 流光渐变文字 */
             background: linear-gradient(135deg, #ffe6e6 0%, #ff9a9e 50%, #ff6b81 100%);
             -webkit-background-clip: text;
             background-clip: text;
@@ -56,7 +57,7 @@
             text-transform: uppercase;
         }
 
-        /* --- 点击提示文字 --- */
+        /* --- 提示点击 --- */
         .click-hint {
             position: absolute;
             bottom: 50px;
@@ -95,23 +96,39 @@
     <div class="click-hint" id="hint">点击屏幕 · 开启音乐</div>
 
     <audio id="bgm" loop>
-        <source src="dly.m4a" type="audio/mpeg">
+        <source src="dly.mp3" type="audio/mpeg">
     </audio>
 
     <script>
-        // --- 音乐控制逻辑 ---
+        // --- 1. 音乐控制逻辑 (包含手机和微信兼容修复) ---
         const audio = document.getElementById('bgm');
         const hint = document.getElementById('hint');
-        
-        // 用户第一次点击页面时播放音乐
-        document.addEventListener('click', function() {
-            if (audio.paused) {
-                audio.play();
-                hint.style.display = 'none'; // 隐藏提示文字
-            }
-        });
+        let isPlayed = false; 
 
-        // --- 下面是爱心粒子特效代码 ---
+        function playMusic() {
+            if (isPlayed) return;
+
+            // 尝试播放，并处理浏览器可能抛出的拦截错误
+            audio.play().then(() => {
+                // 播放成功
+                hint.style.display = 'none'; // 隐藏提示
+                isPlayed = true;
+            }).catch(e => {
+                console.log("播放被拦截，等待下一次交互或 WeixinJSBridge 触发");
+            });
+        }
+
+        // 监听多种用户交互事件，确保手机端能触发
+        document.body.addEventListener('touchstart', playMusic);
+        document.body.addEventListener('click', playMusic);
+
+        // 微信专用修复代码，监听微信浏览器事件
+        document.addEventListener("WeixinJSBridgeReady", function () {
+            playMusic();
+        }, false);
+
+
+        // --- 2. 爱心粒子特效逻辑 ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let width, height, particles = [];
@@ -178,6 +195,7 @@
         }
 
         function animate() {
+            // 拖尾效果
             ctx.fillStyle = 'rgba(5, 0, 2, 0.15)'; 
             ctx.fillRect(0, 0, width, height);
             const time = Date.now() / 1000;
